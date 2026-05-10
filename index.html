@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>○○自治会</title>
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    /* ========== リセット & ベース ========== */
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      min-height: 100vh;
+      font-size: 16px;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ========== ヘッダー ========== */
+    .app-header {
+      background: linear-gradient(135deg, #00B900 0%, #00A000 100%);
+      color: white;
+      padding: 14px 16px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      box-shadow: 0 2px 10px rgba(0,185,0,0.3);
+    }
+    .app-header h1 { font-size: 19px; font-weight: bold; letter-spacing: 0.5px; }
+
+    /* ========== ボトムナビゲーション ========== */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      display: flex;
+      border-top: 1px solid #e0e0e0;
+      z-index: 200;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 10px 4px 8px;
+      text-align: center;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 11px;
+      color: #999;
+      transition: all 0.2s;
+      line-height: 1.3;
+    }
+    .nav-btn.active { color: #00B900; }
+    .nav-btn .nav-icon { font-size: 24px; display: block; margin-bottom: 3px; }
+
+    /* ========== メインコンテンツ ========== */
+    .main-content {
+      padding: 18px 14px;
+      padding-bottom: 90px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ========== セクション見出し ========== */
+    .section-header { margin-bottom: 18px; }
+    .section-title { font-size: 20px; font-weight: bold; color: #222; margin-bottom: 4px; }
+    .section-subtitle { font-size: 14px; color: #777; line-height: 1.5; }
+
+    /* ========== お問い合わせ カード ========== */
+    .contact-card {
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      border-left: 5px solid #00B900;
+    }
+    .contact-role-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .role-icon { font-size: 32px; line-height: 1; }
+    .role-title { font-size: 17px; font-weight: bold; color: #222; }
+    .role-name { font-size: 15px; color: #555; margin-top: 2px; }
+    .contact-note {
+      font-size: 13px;
+      color: #888;
+      background: #f8f8f8;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .contact-buttons { display: flex; gap: 10px; }
+    .btn {
+      flex: 1;
+      padding: 14px 8px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+      transition: transform 0.15s, opacity 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      line-height: 1;
+    }
+    .btn:active { transform: scale(0.95); opacity: 0.8; }
+    .btn-phone {
+      background: #EAF4FF;
+      color: #0066CC;
+      border: 2px solid #B8D8F5;
+    }
+    .btn-line {
+      background: #00B900;
+      color: white;
+    }
+    .btn-disabled {
+      background: #f0f0f0;
+      color: #bbb;
+      cursor: default;
+      border: 2px solid #e0e0e0;
+    }
+
+    /* ========== フィルターチップ ========== */
+    .filter-block { margin-bottom: 14px; }
+    .filter-label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 8px;
+    }
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 2px solid #ddd;
+      background: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+      font-weight: bold;
+    }
+    .chip.active {
+      background: #00B900;
+      color: white;
+      border-color: #00B900;
+    }
+
+    /* ========== お知らせ一覧 ========== */
+    .notice-count {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 12px;
+    }
+    .notice-item {
+      background: white;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .notice-item:active { transform: scale(0.98); }
+    .notice-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .badge-行事 { background: #FFF3E0; color: #E65100; }
+    .badge-回覧板 { background: #E8F5E9; color: #2E7D32; }
+    .badge-お知らせ { background: #E3F2FD; color: #1565C0; }
+    .notice-date { font-size: 13px; color: #999; }
+    .notice-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #222;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .notice-detail {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.7;
+      white-space: pre-line;
+    }
+    .no-data {
+      text-align: center;
+      padding: 50px 20px;
+      color: #aaa;
+      font-size: 15px;
+      line-height: 2;
+    }
+    .no-data-icon { font-size: 40px; display: block; margin-bottom: 10px; }
+
+    /* ========== 組織図 ========== */
+    .year-selector-row {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 20px;
+      scrollbar-width: none;
+    }
+    .year-selector-row::-webkit-scrollbar { display: none; }
+    .year-btn {
+      padding: 10px 22px;
+      border-radius: 22px;
+      border: 2px solid #ddd;
+      background: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.18s;
+    }
+    .year-btn.active {
+      background: #00B900;
+      color: white;
+      border-color: #00B900;
+    }
+    .org-group { margin-bottom: 20px; }
+    .org-group-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #00A000;
+      background: #E8F5E9;
+      padding: 8px 14px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    .org-member-card {
+      background: white;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .org-icon { font-size: 26px; line-height: 1; }
+    .org-name { font-size: 16px; font-weight: bold; color: #222; }
+    .org-role { font-size: 13px; color: #00A000; margin-top: 2px; font-weight: bold; }
+    .org-term { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+    /* ========== タブ表示切り替え ========== */
+    .tab-section { display: none; animation: fadeIn 0.2s ease; }
+    .tab-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ========== ページ内アンカー ========== */
+    .page-top-btn {
+      display: block;
+      text-align: center;
+      padding: 14px;
+      font-size: 14px;
+      color: #00B900;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header class="app-header">
+  <h1 id="assoc-name-header">🏘️ ○○自治会</h1>
+</header>
+
+<!-- メインコンテンツ -->
+<main class="main-content" id="page-top">
+
+  <!-- ========== お問い合わせ タブ ========== -->
+  <section id="tab-contact" class="tab-section active">
+    <div class="section-header">
+      <div class="section-title">📬 お問い合わせ</div>
+      <div class="section-subtitle">ご用件に合わせた担当者へご連絡ください</div>
+    </div>
+    <div id="contact-list">
+      <!-- JSで生成 -->
+    </div>
+  </section>
+
+  <!-- ========== 回覧板・お知らせ タブ ========== -->
+  <section id="tab-notices" class="tab-section">
+    <div class="section-header">
+      <div class="section-title">📋 回覧板・お知らせ</div>
+      <div class="section-subtitle">行事・回覧板・お知らせの一覧です</div>
+    </div>
+
+    <div class="filter-block">
+      <div class="filter-label">📅 年を選ぶ</div>
+      <div class="chip-row" id="year-filter-chips"><!-- JSで生成 --></div>
+    </div>
+    <div class="filter-block">
+      <div class="filter-label">🗓 月を選ぶ</div>
+      <div class="chip-row" id="month-filter-chips"><!-- JSで生成 --></div>
+    </div>
+
+    <div class="notice-count" id="notice-count-label"></div>
+    <div id="notice-list"><!-- JSで生成 --></div>
+    <a class="page-top-btn" href="#page-top" onclick="document.getElementById('page-top').scrollIntoView({behavior:'smooth'});return false;">▲ トップへ戻る</a>
+  </section>
+
+  <!-- ========== 組織図 タブ ========== -->
+  <section id="tab-org" class="tab-section">
+    <div class="section-header">
+      <div class="section-title">👥 自治会組織図</div>
+      <div class="section-subtitle">年度ごとの役員・部員の一覧です</div>
+    </div>
+    <div class="year-selector-row" id="org-year-selector"><!-- JSで生成 --></div>
+    <div id="org-chart"><!-- JSで生成 --></div>
+    <a class="page-top-btn" href="#page-top" onclick="document.getElementById('page-top').scrollIntoView({behavior:'smooth'});return false;">▲ トップへ戻る</a>
+  </section>
+
+</main>
+
+<!-- ボトムナビゲーション -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="switchTab('contact', this)">
+    <span class="nav-icon">📬</span>
+    お問い合わせ
+  </button>
+  <button class="nav-btn" onclick="switchTab('notices', this)">
+    <span class="nav-icon">📋</span>
+    回覧板・お知らせ
+  </button>
+  <button class="nav-btn" onclick="switchTab('org', this)">
+    <span class="nav-icon">👥</span>
+    組織図
+  </button>
+</nav>
+
+
+<script>
+// =====================================================================
+//  ★★★ データ設定エリア（ここを書き換えてください）★★★
+// =====================================================================
+
+// 自治会名（ヘッダーに表示されます）
+const ASSOC_NAME = "○○自治会";
+
+// LIFF App ID（LINE Developersで取得したIDを入力してください）
+// 取得前は "YOUR_LIFF_ID_HERE" のままで大丈夫です
+const LIFF_ID = "YOUR_LIFF_ID_HERE";
+
+// -------------------------------------------------------
+// 担当者の連絡先
+// phone : 電話番号。不要な場合は "" に
+// lineId: LINE の個人ID または "@で始まるLINE公式アカウントID"
+//         不要な場合は "" に
+// -------------------------------------------------------
+const CONTACTS = [
+  {
+    role: "自治会長",
+    icon: "👑",
+    name: "山田 太郎（仮）",
+    phone: "090-0000-0001",
+    lineId: "sample_kaicho",
+    note: "緊急のご連絡はお電話ください"
+  },
+  {
+    role: "副会長",
+    icon: "🤝",
+    name: "鈴木 花子（仮）",
+    phone: "090-0000-0002",
+    lineId: "sample_fukukaicho",
+    note: "行事・イベントに関するご相談"
+  },
+  {
+    role: "会計",
+    icon: "💰",
+    name: "田中 一郎（仮）",
+    phone: "090-0000-0003",
+    lineId: "sample_kaikei",
+    note: "会費・経費に関するご相談"
+  },
+  {
+    role: "担当者（環境部）",
+    icon: "🌿",
+    name: "佐藤 次郎（仮）",
+    phone: "090-0000-0004",
+    lineId: "sample_tantousha",
+    note: "ごみ収集・清掃に関するご相談"
+  }
+];
+
+// -------------------------------------------------------
+// 回覧板・お知らせ・行事のデータ
+//
+// 追加方法：
+//   { } の1ブロックをコピーして、データを書き換えてください。
+//   末尾のブロックにはカンマを忘れずに。
+//
+// category（種別）: "行事" / "回覧板" / "お知らせ" のどれかを選択
+// detail: 改行したい場合は \n を使用
+// -------------------------------------------------------
+const NOTICES = [
+  {
+    year: 2026,
+    month: 5,
+    day: 10,
+    category: "行事",
+    title: "5月の環境清掃活動",
+    detail: "日時：5月10日(日) 9:00〜11:00\n集合場所：○○公園入口\n※雨天中止"
+  },
+  {
+    year: 2026,
+    month: 5,
+    day: 1,
+    category: "お知らせ",
+    title: "令和8年度 会費の集金について",
+    detail: "今月中旬より各班長が集金に伺います。\n年額：3,000円\nご不在の場合は後日再訪します。"
+  },
+  {
+    year: 2026,
+    month: 4,
+    day: 20,
+    category: "回覧板",
+    title: "市からのお知らせ：防災マップ更新",
+    detail: "新しい防災マップが各戸に配布されました。\n大切に保管してください。"
+  },
+  {
+    year: 2026,
+    month: 4,
+    day: 5,
+    category: "お知らせ",
+    title: "春の花見（中止のお知らせ）",
+    detail: "天候不順のため、今年の花見は中止といたします。\nご理解のほどよろしくお願いいたします。"
+  },
+  {
+    year: 2026,
+    month: 3,
+    day: 15,
+    category: "行事",
+    title: "3月 役員会のご案内",
+    detail: "日時：3月15日(土) 19:00〜\n場所：○○集会所"
+  },
+  {
+    year: 2026,
+    month: 1,
+    day: 10,
+    category: "行事",
+    title: "新年のご挨拶・新年会",
+    detail: "日時：1月10日(土) 18:00〜\n場所：○○集会所\nどなたでもご参加いただけます。"
+  },
+  {
+    year: 2025,
+    month: 12,
+    day: 20,
+    category: "行事",
+    title: "年末大掃除",
+    detail: "日時：12月20日(土) 8:00〜10:00\n地区内一斉清掃を行います。"
+  },
+  {
+    year: 2025,
+    month: 10,
+    day: 1,
+    category: "行事",
+    title: "秋の祭り",
+    detail: "日時：10月1日(土)〜2日(日)\n場所：○○神社\n今年も盛大に開催します。"
+  },
+  {
+    year: 2025,
+    month: 7,
+    day: 15,
+    category: "行事",
+    title: "夏祭り・盆踊り大会",
+    detail: "日時：7月15日(土) 17:00〜21:00\n場所：○○公園\n出店あり。ぜひご家族でどうぞ。"
+  },
+  {
+    year: 2025,
+    month: 4,
+    day: 5,
+    category: "お知らせ",
+    title: "令和7年度 役員改選のお知らせ",
+    detail: "4月の総会にて新役員が決定しました。\n詳細は各班長よりお伝えします。"
+  }
+];
+
+// -------------------------------------------------------
+// 自治会組織図（年度ごと）
+//
+// 追加方法：
+//   新しい年度を追加する場合は、2026: { ... } のブロックを
+//   コピーして年号を変更してください。
+// -------------------------------------------------------
+const ORG_CHART = {
+  2026: {
+    leaders: [
+      { name: "山田 太郎", title: "自治会長", term: "2025年4月〜", icon: "👑" },
+      { name: "鈴木 花子", title: "副会長",   term: "2025年4月〜", icon: "🤝" },
+      { name: "田中 一郎", title: "会計",     term: "2025年4月〜", icon: "💰" }
+    ],
+    departments: [
+      {
+        name: "環境部",
+        members: [
+          { name: "佐藤 次郎", role: "部長",   icon: "🌿" },
+          { name: "伊藤 美子", role: "副部長", icon: "🌿" }
+        ]
+      },
+      {
+        name: "福祉部",
+        members: [
+          { name: "渡辺 三郎", role: "部長",   icon: "💛" },
+          { name: "中村 幸子", role: "副部長", icon: "💛" }
+        ]
+      },
+      {
+        name: "防災部",
+        members: [
+          { name: "小林 勇",   role: "部長",   icon: "🔥" }
+        ]
+      }
+    ]
+  },
+  2025: {
+    leaders: [
+      { name: "前田 義雄", title: "自治会長", term: "2024年4月〜2025年3月", icon: "👑" },
+      { name: "山田 太郎", title: "副会長",   term: "2024年4月〜2025年3月", icon: "🤝" },
+      { name: "田中 一郎", title: "会計",     term: "2024年4月〜2025年3月", icon: "💰" }
+    ],
+    departments: [
+      {
+        name: "環境部",
+        members: [
+          { name: "佐藤 次郎", role: "部長", icon: "🌿" }
+        ]
+      },
+      {
+        name: "福祉部",
+        members: [
+          { name: "渡辺 三郎", role: "部長", icon: "💛" }
+        ]
+      }
+    ]
+  }
+};
+
+// =====================================================================
+//  ★★★ ここから下は通常編集不要です ★★★
+// =====================================================================
+
+// ----- タブ切り替え -----
+function switchTab(tabName, btnEl) {
+  document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tabName).classList.add('active');
+  btnEl.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ----- 自治会名 -----
+document.getElementById('assoc-name-header').textContent = '🏘️ ' + ASSOC_NAME;
+
+// ===========================
+//  お問い合わせ
+// ===========================
+function renderContacts() {
+  const list = document.getElementById('contact-list');
+  list.innerHTML = CONTACTS.map(c => {
+    const phoneBtn = c.phone
+      ? `<a class="btn btn-phone" href="tel:${c.phone.replace(/-/g,'')}" role="button">📞 電話する</a>`
+      : `<span class="btn btn-disabled">📞 電話なし</span>`;
+
+    const lineBtn = c.lineId
+      ? `<a class="btn btn-line" href="line://ti/p/${c.lineId}" role="button">💬 LINEで連絡</a>`
+      : `<span class="btn btn-disabled">💬 LINE未設定</span>`;
+
+    return `
+      <div class="contact-card">
+        <div class="contact-role-row">
+          <span class="role-icon">${c.icon}</span>
+          <div>
+            <div class="role-title">${c.role}</div>
+            <div class="role-name">${c.name}</div>
+          </div>
+        </div>
+        ${c.note ? `<div class="contact-note">${c.note}</div>` : ''}
+        <div class="contact-buttons">
+          ${phoneBtn}
+          ${lineBtn}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ===========================
+//  回覧板・お知らせ
+// ===========================
+let selectedYear  = 'all';
+let selectedMonth = 'all';
+
+function getYears() {
+  return [...new Set(NOTICES.map(n => n.year))].sort((a,b) => b - a);
+}
+
+function renderYearFilterChips() {
+  const years = getYears();
+  const el = document.getElementById('year-filter-chips');
+  el.innerHTML =
+    `<button class="chip active" onclick="filterYear('all', this)">すべての年</button>` +
+    years.map(y => `<button class="chip" onclick="filterYear(${y}, this)">${y}年</button>`).join('');
+}
+
+function renderMonthFilterChips() {
+  const el = document.getElementById('month-filter-chips');
+  el.innerHTML =
+    `<button class="chip active" onclick="filterMonth('all', this)">すべての月</button>` +
+    [...Array(12)].map((_, i) =>
+      `<button class="chip" onclick="filterMonth(${i+1}, this)">${i+1}月</button>`
+    ).join('');
+}
+
+function filterYear(year, el) {
+  selectedYear = year;
+  document.querySelectorAll('#year-filter-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderNoticeList();
+}
+
+function filterMonth(month, el) {
+  selectedMonth = month;
+  document.querySelectorAll('#month-filter-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderNoticeList();
+}
+
+function renderNoticeList() {
+  const filtered = NOTICES
+    .filter(n => {
+      if (selectedYear  !== 'all' && n.year  !== selectedYear)  return false;
+      if (selectedMonth !== 'all' && n.month !== selectedMonth) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.year  !== b.year)  return b.year  - a.year;
+      if (a.month !== b.month) return b.month - a.month;
+      return b.day - a.day;
+    });
+
+  const countEl = document.getElementById('notice-count-label');
+  countEl.textContent = `${filtered.length} 件`;
+
+  const container = document.getElementById('notice-list');
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="no-data">
+        <span class="no-data-icon">📭</span>
+        この期間のお知らせはありません
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(n => {
+    const dateStr = `${n.year}年${n.month}月${n.day}日`;
+    return `
+      <div class="notice-item">
+        <div class="notice-meta">
+          <span class="badge badge-${n.category}">${n.category}</span>
+          <span class="notice-date">${dateStr}</span>
+        </div>
+        <div class="notice-title">${n.title}</div>
+        <div class="notice-detail">${n.detail.replace(/\n/g,'<br>')}</div>
+      </div>`;
+  }).join('');
+}
+
+// ===========================
+//  組織図
+// ===========================
+let selectedOrgYear = null;
+
+function renderOrgYearSelector() {
+  const years = Object.keys(ORG_CHART).map(Number).sort((a,b) => b - a);
+  selectedOrgYear = years[0];
+  const el = document.getElementById('org-year-selector');
+  el.innerHTML = years.map((y, i) =>
+    `<button class="year-btn ${i === 0 ? 'active' : ''}" onclick="selectOrgYear(${y}, this)">${y}年度</button>`
+  ).join('');
+}
+
+function selectOrgYear(year, el) {
+  selectedOrgYear = year;
+  document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderOrgChart();
+}
+
+function renderOrgChart() {
+  const data = ORG_CHART[selectedOrgYear];
+  if (!data) {
+    document.getElementById('org-chart').innerHTML =
+      '<div class="no-data"><span class="no-data-icon">📋</span>この年度のデータはありません</div>';
+    return;
+  }
+
+  let html = '';
+
+  // 役員
+  html += `<div class="org-group"><div class="org-group-title">🏅 役員</div>`;
+  html += data.leaders.map(l => `
+    <div class="org-member-card">
+      <span class="org-icon">${l.icon}</span>
+      <div>
+        <div class="org-name">${l.name}</div>
+        <div class="org-role">${l.title}</div>
+        <div class="org-term">${l.term}</div>
+      </div>
+    </div>`).join('');
+  html += '</div>';
+
+  // 各部
+  (data.departments || []).forEach(dept => {
+    html += `<div class="org-group"><div class="org-group-title">🔹 ${dept.name}</div>`;
+    html += dept.members.map(m => `
+      <div class="org-member-card">
+        <span class="org-icon">${m.icon}</span>
+        <div>
+          <div class="org-name">${m.name}</div>
+          <div class="org-role">${m.role}</div>
+        </div>
+      </div>`).join('');
+    html += '</div>';
+  });
+
+  document.getElementById('org-chart').innerHTML = html;
+}
+
+// ===========================
+//  LIFF 初期化 & 起動
+// ===========================
+async function initApp() {
+  // LIFF IDが設定されている場合のみ初期化
+  if (LIFF_ID && LIFF_ID !== "YOUR_LIFF_ID_HERE") {
+    try {
+      await liff.init({ liffId: LIFF_ID });
+      console.log("LIFF initialized:", liff.getOS());
+    } catch (e) {
+      console.warn("LIFF初期化エラー（ブラウザ確認中は無視可）:", e.message);
+    }
+  }
+
+  // URLパラメータ ?tab=notices や ?tab=org でタブを指定可能
+  // 例：リッチメニューの「回覧板」ボタンのURLに ?tab=notices を付ける
+  const params = new URLSearchParams(location.search);
+  const tabParam = params.get('tab');
+  if (tabParam) {
+    const targetBtn = document.querySelector(`.nav-btn[onclick*="'${tabParam}'"]`);
+    if (targetBtn) switchTab(tabParam, targetBtn);
+  }
+
+  // 各セクション描画
+  renderContacts();
+  renderYearFilterChips();
+  renderMonthFilterChips();
+  renderNoticeList();
+  renderOrgYearSelector();
+  renderOrgChart();
+}
+
+// アプリ起動
+initApp();
+</script>
+</body>
+</html>
