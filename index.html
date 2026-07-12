@@ -365,13 +365,100 @@
     .doc-modal-body iframe { width: 100%; height: 55vh; border: none; }
     .doc-modal-placeholder { text-align: center; color: #aaa; font-size: 14px; line-height: 2; }
     .doc-modal-placeholder-icon { font-size: 48px; display: block; margin-bottom: 10px; }
+
+    /* ========== 合言葉ゲート ========== */
+    .password-gate {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #00B900 0%, #00A000 100%);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .password-card {
+      background: white;
+      border-radius: 20px;
+      padding: 32px 24px;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }
+    .password-icon { font-size: 44px; margin-bottom: 10px; line-height: 1; }
+    .password-title { font-size: 19px; font-weight: bold; color: #222; margin-bottom: 6px; }
+    .password-desc { font-size: 13px; color: #777; margin-bottom: 20px; line-height: 1.5; }
+    .password-input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 2px solid #ddd;
+      font-size: 16px;
+      margin-bottom: 8px;
+      text-align: center;
+      outline: none;
+      font-family: inherit;
+    }
+    .password-input:focus { border-color: #00B900; }
+    .password-error {
+      font-size: 13px;
+      color: #E53935;
+      min-height: 18px;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    .password-submit { width: 100%; }
+
+    /* ========== 回覧板・お知らせ資料（Driveファイル一覧） ========== */
+    .drive-file-card {
+      background: white;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      cursor: pointer;
+      transition: transform 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .drive-file-card:active { transform: scale(0.98); }
+    .drive-file-icon { font-size: 24px; line-height: 1; flex-shrink: 0; }
+    .drive-file-name { font-size: 15px; font-weight: bold; color: #222; word-break: break-all; line-height: 1.4; }
+    .drive-file-date { font-size: 12px; color: #999; margin-top: 3px; }
+    .sub-section-title {
+      font-size: 17px;
+      font-weight: bold;
+      color: #222;
+      margin: 26px 0 4px;
+    }
+    .sub-section-subtitle {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
 
+<!-- ========== 合言葉ゲート ========== -->
+<div id="password-gate" class="password-gate">
+  <div class="password-card">
+    <div class="password-icon">🔒</div>
+    <div class="password-title">角田自治会 アプリ</div>
+    <div class="password-desc">ご利用には合言葉の入力が必要です<br>自治会でお伝えしている合言葉を入力してください</div>
+    <input type="password" id="password-input" class="password-input" placeholder="合言葉を入力" autocomplete="off"
+           onkeydown="if(event.key === 'Enter'){ submitPassword(); }">
+    <div id="password-error" class="password-error"></div>
+    <button class="btn btn-line password-submit" onclick="submitPassword()">入室する</button>
+  </div>
+</div>
+
 <!-- ヘッダー -->
 <header class="app-header">
-  <h1 id="assoc-name-header">🏘️ 角田自治会</h1>
+  <h1 id="assoc-name-header">🏘️ ○○自治会</h1>
 </header>
 
 <!-- メインコンテンツ -->
@@ -400,6 +487,10 @@
       <div id="doc-btn-row" class="doc-btn-row"><!-- JSで生成 --></div>
     </div>
 
+    <!-- 行事予定（Googleカレンダー連携） -->
+    <div class="sub-section-title">📅 行事予定</div>
+    <div class="sub-section-subtitle">カレンダーに登録された行事の一覧です</div>
+
     <div class="filter-block">
       <div class="filter-label">📅 年を選ぶ</div>
       <div class="chip-row" id="year-filter-chips"><!-- JSで生成 --></div>
@@ -411,6 +502,14 @@
 
     <div class="notice-count" id="notice-count-label"></div>
     <div id="notice-list"><!-- JSで生成 --></div>
+
+    <!-- 回覧板・お知らせ資料（Google Drive連携） -->
+    <div class="sub-section-title">🗂 回覧板・お知らせ資料</div>
+    <div class="sub-section-subtitle">タップすると資料（画像・PDF）を表示します</div>
+
+    <div class="notice-count" id="drive-count-label"></div>
+    <div id="drive-file-list"><!-- JSで生成 --></div>
+
     <a class="page-top-btn" href="#page-top" onclick="document.getElementById('page-top').scrollIntoView({behavior:'smooth'});return false;">▲ トップへ戻る</a>
   </section>
 
@@ -468,6 +567,30 @@ const ASSOC_NAME = "角田自治会";
 const LIFF_ID = "2009971179-KoMAm45c";
 
 // -------------------------------------------------------
+// 合言葉（アクセス制限）
+// このアプリを開いたときに最初に入力してもらう合言葉です。
+// 一度正解すると、この端末のブラウザには次回から聞かれません。
+// ★★★ ここを編集：合言葉を変更したいときはここを書き換えてください ★★★
+// -------------------------------------------------------
+const APP_PASSWORD = "kakuta2026";
+const AUTH_STORAGE_KEY = "jichikai_authed";
+
+// -------------------------------------------------------
+// Google API 連携設定
+// ブラウザから直接 Google の各API（Calendar / Drive / Sheets）を
+// 呼び出すための設定です。API_KEY はフロントエンド用の
+// 「HTTPリファラー制限つき」キーなので、そのままコードに書いて問題ありません。
+//
+// ★★★ ここを編集：カレンダー/Driveフォルダ/スプレッドシートを
+//     変更したいときはこの値を書き換えてください ★★★
+// -------------------------------------------------------
+const API_KEY = "AIzaSyDmJ0IAAQyvhH0lKxfH5_Z161FriOJnuxw";
+const CALENDAR_ID = "4b2809c4b3e621700511a79d3fb78338ea276870dbec9165428e08aed4ef334b@group.calendar.google.com";
+const DRIVE_FOLDER_ID = "1THixhGGvkl2HsPXBu0-L-K7XMcnH1tGP";
+const SHEET_ID = "1SmBhyXMUx9ZpqpnJnPc6y6EwtWS5SJcMHf97RPtZRVw";
+const SHEET_RANGE = "シート1!A2:F1000"; // ヘッダー行(1行目: 年度,グループ,名前,役職,任期,アイコン)を除く
+
+// -------------------------------------------------------
 // 担当者の連絡先
 // phone : 電話番号。不要な場合は "" に
 // lineId: LINE の個人ID または "@で始まるLINE公式アカウントID"
@@ -511,549 +634,48 @@ const CONTACTS = [
 // -------------------------------------------------------
 // 資料（ゴミ当番・公民館清掃など）
 //
-// type: "image" → 画像ファイル（jpg, png など）
-//       "pdf"   → PDF ファイル
-// url : ファイルのパスまたはURL
-//       同じフォルダに置く場合は "./ファイル名.jpg" のように書く
-//       まだファイルが無い場合は "" のままで大丈夫です
+// driveFileName : Google Drive（DRIVE_FOLDER_ID配下）に置いてある
+//                 ファイル名と完全一致させてください（例: "IMG_9298.JPG"）。
+//                 一覧取得時に自動でこの名前のファイルを検索し、
+//                 見つかった場合だけ表示URLが設定されます。
+// url           : 自動で設定されるので、通常は書き換え不要です（初期値は空でOK）。
+// ★★★ ここを編集：ボタンを追加・変更したいときはこの配列を書き換えてください ★★★
 // -------------------------------------------------------
 const DOCUMENTS = [
   {
     title: "ゴミ当番",
     icon: "🗑️",
     type: "image",
-    url: "./IMG_9298.JPG"
-  }, {
+    driveFileName: "IMG_9298.JPG",
+    url: ""
+  },
+  {
     title: "公民館清掃",
     icon: "🏢",
     type: "image",
-    url: "./IMG_9314.JPG"];
-  }
-
-// -------------------------------------------------------
-// 回覧板・お知らせ・行事のデータ
-//
-// 追加方法：
-//   { } の1ブロックをコピーして、データを書き換えてください。
-//   末尾のブロックにはカンマを忘れずに。
-//
-// category（種別）: "行事" / "回覧板" / "お知らせ" のどれかを選択
-// detail: 改行したい場合は \n を使用
-// -------------------------------------------------------
-const NOTICES = [
-  {
-    year: 2026,
-    month: 1,
-    day: 1,
-    category: "行事",
-    title: "日吉社 元旦祭",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2026,
-    month: 1,
-    day: 4,
-    category: "行事",
-    title: "角田自治会 監査会・役員会",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2026,
-    month: 1,
-    day: 11,
-    category: "行事",
-    title: "角田自治会 総会",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2026,
-    month: 1,
-    day: 25,
-    category: "行事",
-    title: "日吉社奉賛会 監査会（令和7年次役員）",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2026,
-    month: 2,
-    day: 1,
-    category: "行事",
-    title: "日吉社奉賛会 役員会・総会（令和7年次役員）",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2026,
-    month: 2,
-    day: 4,
-    category: "行事",
-    title: "火伏せ（令和8年次役員）",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2026,
-    month: 2,
-    day: 15,
-    category: "行事",
-    title: "報恩講追悼法要（角友会）",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2026,
-    month: 3,
-    day: 7,
-    category: "行事",
-    title: "角田自治会 役員会",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2026,
-    month: 3,
-    day: 21,
-    category: "行事",
-    title: "村廻り",
-    detail: "場所：角田部落周辺"
-  },
-  {
-    year: 2026,
-    month: 3,
-    day: 22,
-    category: "行事",
-    title: "江浚い",
-    detail: "場所：角田部落周辺"
-  },
-  {
-    year: 2026,
-    month: 4,
-    day: 4,
-    category: "行事",
-    title: "角田自治会 花見",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2026,
-    month: 4,
-    day: 6,
-    category: "行事",
-    title: "春の交通安全 街頭指導",
-    detail: "場所：角田交差点"
-  },
-  {
-    year: 2026,
-    month: 4,
-    day: 15,
-    category: "行事",
-    title: "日吉社 春季祭礼（早朝清掃）",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2026,
-    month: 4,
-    day: 25,
-    category: "行事",
-    title: "角田やわやわサロン",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2025,
-    month: 1,
-    day: 1,
-    category: "行事",
-    title: "日吉社 元旦祭",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2025,
-    month: 1,
-    day: 5,
-    category: "行事",
-    title: "角田自治会 監査会・役員会",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2025,
-    month: 1,
-    day: 12,
-    category: "行事",
-    title: "角田自治会 総会・新年会",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2025,
-    month: 1,
-    day: 20,
-    category: "行事",
-    title: "日吉社奉賛会 役員会（総会）",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2025,
-    month: 2,
-    day: 4,
-    category: "行事",
-    title: "火伏せ",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2025,
-    month: 2,
-    day: 16,
-    category: "行事",
-    title: "報恩講追悼法要（角友会）",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2025,
-    month: 3,
-    day: 8,
-    category: "行事",
-    title: "役員会",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2025,
-    month: 3,
-    day: 9,
-    category: "行事",
-    title: "角田自治会 村回り",
-    detail: "場所：角田部落周辺"
-  },
-  {
-    year: 2025,
-    month: 3,
-    day: 23,
-    category: "行事",
-    title: "江浚い",
-    detail: "参加者：31人\n場所：角田部落周辺"
-  },
-  {
-    year: 2025,
-    month: 4,
-    day: 6,
-    category: "行事",
-    title: "春の交通安全 街頭指導",
-    detail: "場所：角田交差点"
-  },
-  {
-    year: 2025,
-    month: 4,
-    day: 9,
-    category: "行事",
-    title: "日吉社奉賛会 臨時役員会（玉垣修繕）",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2025,
-    month: 4,
-    day: 12,
-    category: "行事",
-    title: "角田自治会 花見",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2025,
-    month: 4,
-    day: 15,
-    category: "行事",
-    title: "日吉社 春季祭礼（早朝清掃）",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2025,
-    month: 5,
-    day: 25,
-    category: "行事",
-    title: "角田地区 花壇の植え込み（花と緑の銀行）",
-    detail: "場所：角田地区内"
-  },
-  {
-    year: 2025,
-    month: 6,
-    day: 14,
-    category: "行事",
-    title: "角田自治会 役員会",
-    detail: "場所：角田公民館"
-  },
-  {
-    year: 2025,
-    month: 6,
-    day: 15,
-    category: "行事",
-    title: "大祓い",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2025,
-    month: 7,
-    day: 6,
-    category: "行事",
-    title: "小矢部川河川敷 草刈り",
-    detail: "参加者：18人\n場所：小矢部川河川敷"
-  },
-  {
-    year: 2025,
-    month: 7,
-    day: 26,
-    category: "行事",
-    title: "第16回 がんばる吉江いきいき祭り",
-    detail: "場所：福光駅前"
-  },
-  {
-    year: 2025,
-    month: 8,
-    day: 3,
-    category: "行事",
-    title: "日吉社 お盆前清掃",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2025,
-    month: 8,
-    day: 10,
-    category: "行事",
-    title: "お盆前清掃・道路維持サポート事業",
-    detail: "参加者：24名\n場所：角田公民館周辺"
-  },
-  {
-    year: 2025,
-    month: 8,
-    day: 10,
-    category: "行事",
-    title: "地蔵尊周辺清掃（2班）",
-    detail: "場所：地蔵尊周辺"
-  },
-  {
-    year: 2025,
-    month: 8,
-    day: 15,
-    category: "行事",
-    title: "地蔵尊祭り（こども会）",
-    detail: "場所：地蔵尊周辺"
-  },
-  {
-    year: 2025,
-    month: 9,
-    day: 21,
-    category: "行事",
-    title: "秋の交通安全 街頭指導",
-    detail: "場所：角田交差点"
-  },
-  {
-    year: 2025,
-    month: 9,
-    day: 30,
-    category: "行事",
-    title: "南砺市防災フェア",
-    detail: "場所：城端中学校周辺"
-  },
-  {
-    year: 2025,
-    month: 10,
-    day: 12,
-    category: "行事",
-    title: "日吉社 秋季祭礼（早朝清掃・宮参り）",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2025,
-    month: 10,
-    day: 19,
-    category: "行事",
-    title: "地蔵尊堂改修 入魂式",
-    detail: "場所：旧石碑跡"
-  },
-  {
-    year: 2025,
-    month: 11,
-    day: 8,
-    category: "行事",
-    title: "角田自治会 万雑委員会",
-    detail: "場所：角田交差点"
-  },
-  {
-    year: 2025,
-    month: 11,
-    day: 9,
-    category: "行事",
-    title: "第2回 吉江ボッチャ大会",
-    detail: "場所：東部体育館"
-  },
-  {
-    year: 2025,
-    month: 11,
-    day: 16,
-    category: "行事",
-    title: "新嘗祭",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2025,
-    month: 12,
-    day: 21,
-    category: "行事",
-    title: "大祓い",
-    detail: "場所：日吉社"
-  },
-  {
-    year: 2025,
-    month: 12,
-    day: 30,
-    category: "行事",
-    title: "日吉社 年末大掃除",
-    detail: "場所：日吉社"
+    driveFileName: "IMG_9314.JPG",
+    url: ""
   }
 ];
 
 // -------------------------------------------------------
 // 自治会組織図（年度ごと）
-//
-// 追加方法：
-//   新しい年度を追加する場合は、2026: { ... } のブロックを
-//   コピーして年号を変更してください。
+// ※ 以前はここに直接データを書いていましたが、現在は
+//    Googleスプレッドシート（SHEET_ID）から自動取得する仕様に
+//    変更されています。データを追加・変更したい場合は
+//    スプレッドシートを編集してください（このファイルの編集は不要です）。
 // -------------------------------------------------------
-const ORG_CHART = {
-  2026: {
-    leaders: [
-      { name: "木下 浩彦",   title: "自治会長", term: "2026年1月総会〜2028年1月総会", icon: "👑" },
-      { name: "嶋田 宏樹",   title: "副会長",   term: "2026年1月総会〜2028年1月総会", icon: "🤝" },
-      { name: "横山 孝之",   title: "会計",     term: "2026年1月総会〜2028年1月総会", icon: "💰" },
-      { name: "松井 美智子", title: "監事",     term: "2026年1月総会〜2028年1月総会", icon: "🔍" }
-    ],
-    departments: [
-      {
-        name: "班委員",
-        members: [
-          { name: "嶋田 英一", role: "1班委員", term: "2026年1月総会〜2028年1月総会", icon: "🏘️" },
-          { name: "中山 正幸", role: "2班委員", term: "2026年1月総会〜2028年1月総会", icon: "🏘️" },
-          { name: "宇野 友基", role: "3班委員", term: "2026年1月総会〜2028年1月総会", icon: "🏘️" }
-        ]
-      },
-      {
-        name: "班長",
-        members: [
-          { name: "嶋田 宏樹", role: "1班班長", term: "2026年1月総会〜2027年1月総会", icon: "🏠" },
-          { name: "横山 健治", role: "2班班長", term: "2026年1月総会〜2027年1月総会", icon: "🏠" },
-          { name: "片岸 一利", role: "3班班長", term: "2026年1月総会〜2027年1月総会", icon: "🏠" }
-        ]
-      },
-      {
-        name: "福寿会",
-        members: [
-          { name: "嶋田 喜代志", role: "会長",  icon: "🌸" },
-          { name: "木下 三枝子", role: "副会長", icon: "🌸" }
-        ]
-      },
-      {
-        name: "壮年会",
-        members: [
-          { name: "嶋田 宏樹", role: "会長",  icon: "💪" },
-          { name: "中林 義治", role: "副会長", icon: "💪" },
-          { name: "中谷 和正", role: "会計",  icon: "💪" }
-        ]
-      },
-      {
-        name: "角友会",
-        members: [
-          { name: "片岸 大輔", role: "会長",  icon: "🌟" },
-          { name: "木下 敦貴", role: "副会長", icon: "🌟" }
-        ]
-      },
-      {
-        name: "こども会",
-        members: [
-          { name: "木下 浩一", role: "会長", icon: "🎒" }
-        ]
-      },
-      {
-        name: "むつみ会",
-        members: [
-          { name: "岩城 昌代",   role: "会長",  icon: "🌺" },
-          { name: "横山 真理子", role: "副会長", icon: "🌺" }
-        ]
-      },
-      {
-        name: "生産組合",
-        members: [
-          { name: "木下 栄俊", role: "担当", icon: "🌾" }
-        ]
-      },
-      {
-        name: "花と緑の銀行",
-        members: [
-          { name: "嶋田 英一", role: "担当", icon: "🌼" }
-        ]
-      },
-      {
-        name: "角田サロン",
-        members: [
-          { name: "松井 美智子", role: "担当", icon: "☕" }
-        ]
-      },
-      {
-        name: "宮委員",
-        members: [
-          { name: "横山 孝雄", role: "会計", icon: "⛩️" },
-          { name: "中山 正幸", role: "委員", icon: "⛩️" }
-        ]
-      },
-      {
-        name: "消防団",
-        members: [
-          { name: "木下 浩一", role: "団員", icon: "🚒" },
-          { name: "片岸 大輔", role: "団員", icon: "🚒" }
-        ]
-      },
-      {
-        name: "交通安全委員",
-        members: [
-          { name: "宇野 友基", role: "委員", icon: "🚦" }
-        ]
-      },
-      {
-        name: "公民館推進委員",
-        members: [
-          { name: "木下 秀俊", role: "委員", icon: "🏃" },
-          { name: "木下 綾奈", role: "委員", icon: "🏃" }
-        ]
-      },
-      {
-        name: "民生委員",
-        members: [
-          { name: "木下 浩彦", role: "委員", icon: "🙋" }
-        ]
-      }
-    ]
-  },
-  2025: {
-    leaders: [
-      { name: "木下 浩彦",   title: "自治会長", term: "2024年1月総会〜2026年1月総会", icon: "👑" },
-      { name: "米山 政和",   title: "副会長",   term: "2024年1月総会〜2026年1月総会", icon: "🤝" },
-      { name: "松井 美智子", title: "会計",     term: "2024年1月総会〜2026年1月総会", icon: "💰" },
-      { name: "木下 秀俊",   title: "監事",     term: "2024年1月総会〜2026年1月総会", icon: "🔍" }
-    ],
-    departments: [
-      {
-        name: "班委員",
-        members: [
-          { name: "嶋田 喜代志", role: "1班委員", term: "2024年1月総会〜2026年1月総会", icon: "🏘️" },
-          { name: "中山 正幸",   role: "2班委員", term: "2024年1月総会〜2026年1月総会", icon: "🏘️" },
-          { name: "岩城 栄吉",   role: "3班委員", term: "2024年1月総会〜2026年1月総会", icon: "🏘️" }
-        ]
-      },
-      {
-        name: "班長",
-        members: [
-          { name: "嶋田 英一", role: "1班班長", term: "2025年1月総会〜2026年1月総会", icon: "🏠" },
-          { name: "野原 豊朗", role: "2班班長", term: "2025年1月総会〜2026年1月総会", icon: "🏠" },
-          { name: "中谷 和正", role: "3班班長", term: "2025年1月総会〜2026年1月総会", icon: "🏠" }
-        ]
-      }
-    ]
-  }
-};
 
 // =====================================================================
 //  ★★★ ここから下は通常編集不要です ★★★
 // =====================================================================
+
+// ----- HTMLエスケープ（外部データ表示時のXSS対策） -----
+function escapeHtml(str) {
+  return String(str == null ? '' : str).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
 
 // ----- タブ切り替え -----
 function switchTab(tabName, btnEl) {
@@ -1066,6 +688,38 @@ function switchTab(tabName, btnEl) {
 
 // ----- 自治会名 -----
 document.getElementById('assoc-name-header').textContent = '🏘️ ' + ASSOC_NAME;
+
+// ===========================
+//  合言葉ゲート
+// ===========================
+function checkAuth() {
+  if (localStorage.getItem(AUTH_STORAGE_KEY) === '1') {
+    hidePasswordGate();
+    initApp();
+  } else {
+    document.getElementById('password-input').focus();
+  }
+}
+
+function submitPassword() {
+  const input = document.getElementById('password-input');
+  const errorEl = document.getElementById('password-error');
+  if (input.value === APP_PASSWORD) {
+    localStorage.setItem(AUTH_STORAGE_KEY, '1');
+    errorEl.textContent = '';
+    hidePasswordGate();
+    initApp();
+  } else {
+    errorEl.textContent = '合言葉が違います。もう一度お試しください。';
+    input.value = '';
+    input.focus();
+  }
+}
+
+function hidePasswordGate() {
+  const gate = document.getElementById('password-gate');
+  if (gate) gate.style.display = 'none';
+}
 
 // ===========================
 //  お問い合わせ
@@ -1100,26 +754,56 @@ function renderContacts() {
 }
 
 // ===========================
-//  回覧板・お知らせ
+//  行事予定（Googleカレンダー連携）
 // ===========================
+let calendarEvents = [];       // 取得済みイベント一覧
+let calendarLoadState = 'loading'; // 'loading' | 'ok' | 'error'
 let selectedYear  = null;
 let selectedMonth = null;
 
-function getYears() {
-  return [...new Set(NOTICES.map(n => n.year))].sort((a,b) => b - a);
+async function fetchCalendarEvents() {
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`
+    + `?key=${API_KEY}&singleEvents=true&orderBy=startTime&maxResults=2500`
+    + `&timeMin=2023-01-01T00:00:00Z&timeMax=2031-12-31T23:59:59Z`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('calendar fetch failed: ' + res.status);
+  const data = await res.json();
+  return (data.items || []).map(ev => {
+    const startStr = (ev.start && (ev.start.dateTime || ev.start.date)) || null;
+    const d = startStr ? new Date(startStr) : null;
+    if (!d || isNaN(d.getTime())) return null;
+    return {
+      id: ev.id,
+      title: ev.summary || '(無題の予定)',
+      location: ev.location || '',
+      year: d.getFullYear(),
+      month: d.getMonth() + 1,
+      day: d.getDate(),
+      dateObj: d
+    };
+  }).filter(Boolean);
+}
+
+function getEventYears() {
+  return [...new Set(calendarEvents.map(e => e.year))].sort((a, b) => b - a);
 }
 
 function getDefaultMonth(year) {
   const months = [...new Set(
-    NOTICES.filter(n => n.year === year).map(n => n.month)
+    calendarEvents.filter(e => e.year === year).map(e => e.month)
   )].sort((a, b) => b - a);
   return months.length > 0 ? months[0] : new Date().getMonth() + 1;
 }
 
 function renderYearFilterChips() {
-  const years = getYears();
-  selectedYear = years[0];
+  const years = getEventYears();
   const el = document.getElementById('year-filter-chips');
+  if (years.length === 0) {
+    selectedYear = null;
+    el.innerHTML = '';
+    return;
+  }
+  selectedYear = years[0];
   el.innerHTML = years.map((y, i) =>
     `<button class="chip ${i === 0 ? 'active' : ''}" onclick="filterYear(${y}, this)">${y}年</button>`
   ).join('');
@@ -1153,54 +837,216 @@ function filterMonth(month, el) {
 }
 
 function renderNoticeList() {
-  const filtered = NOTICES
-    .filter(n => {
-      if (selectedYear  !== null && n.year  !== selectedYear)  return false;
-      if (selectedMonth !== null && n.month !== selectedMonth) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      if (a.year  !== b.year)  return b.year  - a.year;
-      if (a.month !== b.month) return b.month - a.month;
-      return b.day - a.day;
-    });
-
   const countEl = document.getElementById('notice-count-label');
-  countEl.textContent = `${filtered.length} 件`;
-
   const container = document.getElementById('notice-list');
-  if (filtered.length === 0) {
+
+  if (calendarLoadState === 'loading') {
+    countEl.textContent = '';
+    container.innerHTML = `<div class="no-data"><span class="no-data-icon">⏳</span>読み込み中...</div>`;
+    return;
+  }
+  if (calendarLoadState === 'error') {
+    countEl.textContent = '';
     container.innerHTML = `
       <div class="no-data">
-        <span class="no-data-icon">📭</span>
-        この期間のお知らせはありません
+        <span class="no-data-icon">⚠️</span>
+        行事予定の読み込みに失敗しました<br>
+        <small>電波状況を確認して、後ほどお試しください</small>
       </div>`;
     return;
   }
 
-  container.innerHTML = filtered.map(n => {
-    const dateStr = `${n.year}年${n.month}月${n.day}日`;
+  const filtered = calendarEvents
+    .filter(e => {
+      if (selectedYear  !== null && e.year  !== selectedYear)  return false;
+      if (selectedMonth !== null && e.month !== selectedMonth) return false;
+      return true;
+    })
+    .sort((a, b) => b.dateObj - a.dateObj);
+
+  countEl.textContent = `${filtered.length} 件`;
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="no-data">
+        <span class="no-data-icon">📭</span>
+        この期間の行事予定はありません
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(e => {
+    const dateStr = `${e.year}年${e.month}月${e.day}日`;
     return `
       <div class="notice-item">
         <div class="notice-meta">
-          <span class="badge badge-${n.category}">${n.category}</span>
+          <span class="badge badge-行事">行事</span>
           <span class="notice-date">${dateStr}</span>
         </div>
-        <div class="notice-title">${n.title}</div>
-        <div class="notice-detail">${n.detail.replace(/\n/g,'<br>')}</div>
+        <div class="notice-title">${escapeHtml(e.title)}</div>
+        ${e.location ? `<div class="notice-detail">場所：${escapeHtml(e.location)}</div>` : ''}
       </div>`;
   }).join('');
 }
 
 // ===========================
-//  組織図
+//  回覧板・お知らせ資料（Google Drive連携）
 // ===========================
+let driveFiles = [];
+let driveLoadState = 'loading'; // 'loading' | 'ok' | 'error'
+
+async function fetchDriveFiles() {
+  const q = `'${DRIVE_FOLDER_ID}' in parents and trashed=false`;
+  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}`
+    + `&key=${API_KEY}&fields=files(id,name,mimeType,createdTime)&orderBy=createdTime desc&pageSize=200`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('drive fetch failed: ' + res.status);
+  const data = await res.json();
+  return data.files || [];
+}
+
+function formatDateJp(isoStr) {
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+function driveFileToDocSpec(f) {
+  if (f.mimeType === 'application/pdf') {
+    return { type: 'pdf', url: `https://drive.google.com/file/d/${f.id}/preview` };
+  }
+  if (f.mimeType && f.mimeType.indexOf('image/') === 0) {
+    return { type: 'image', url: `https://drive.google.com/thumbnail?id=${f.id}&sz=w1600` };
+  }
+  return { type: 'unsupported', url: '' };
+}
+
+function renderDriveFileList() {
+  const countEl = document.getElementById('drive-count-label');
+  const container = document.getElementById('drive-file-list');
+
+  if (driveLoadState === 'loading') {
+    countEl.textContent = '';
+    container.innerHTML = `<div class="no-data"><span class="no-data-icon">⏳</span>読み込み中...</div>`;
+    return;
+  }
+  if (driveLoadState === 'error') {
+    countEl.textContent = '';
+    container.innerHTML = `
+      <div class="no-data">
+        <span class="no-data-icon">⚠️</span>
+        資料の読み込みに失敗しました<br>
+        <small>電波状況を確認して、後ほどお試しください</small>
+      </div>`;
+    return;
+  }
+  if (driveFiles.length === 0) {
+    countEl.textContent = '';
+    container.innerHTML = `
+      <div class="no-data">
+        <span class="no-data-icon">📭</span>
+        資料はまだアップロードされていません
+      </div>`;
+    return;
+  }
+
+  countEl.textContent = `${driveFiles.length} 件`;
+  container.innerHTML = driveFiles.map((f, i) => {
+    let icon = '📁';
+    if (f.mimeType === 'application/pdf') icon = '📄';
+    else if (f.mimeType && f.mimeType.indexOf('image/') === 0) icon = '🖼️';
+    const dateStr = f.createdTime ? formatDateJp(f.createdTime) : '';
+    return `
+      <div class="drive-file-card" onclick="openDriveFileModal(${i})">
+        <span class="drive-file-icon">${icon}</span>
+        <div>
+          <div class="drive-file-name">${escapeHtml(f.name)}</div>
+          ${dateStr ? `<div class="drive-file-date">${dateStr}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openDriveFileModal(index) {
+  const f = driveFiles[index];
+  if (!f) return;
+  showDocModal(f.name, driveFileToDocSpec(f));
+}
+
+// DOCUMENTS（ゴミ当番／公民館清掃）のURLを、取得済みのDriveファイル一覧から解決する
+function resolveDocumentUrls() {
+  DOCUMENTS.forEach(doc => {
+    if (!doc.driveFileName) return;
+    const match = driveFiles.find(f => f.name === doc.driveFileName);
+    if (match) {
+      const spec = driveFileToDocSpec(match);
+      doc.url = spec.url;
+      doc.type = spec.type === 'unsupported' ? doc.type : spec.type;
+    } else {
+      doc.url = '';
+    }
+  });
+}
+
+// ===========================
+//  組織図（Googleスプレッドシート連携）
+// ===========================
+let orgChartData = {};          // { 年度: { leaders: [...], departments: [{name, members}] } }
+let orgLoadState = 'loading';   // 'loading' | 'ok' | 'error'
 let selectedOrgYear = null;
 
+async function fetchOrgSheet() {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_RANGE)}?key=${API_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('sheets fetch failed: ' + res.status);
+  const data = await res.json();
+  return data.values || [];
+}
+
+// スプレッドシートの行データ（[年度,グループ,名前,役職,任期,アイコン]）を
+// 年度→役員/グループ別のオブジェクトに変換する
+function buildOrgChartFromRows(rows) {
+  const chart = {};
+  rows.forEach(row => {
+    const yearRaw = row[0];
+    const group   = (row[1] || '').trim();
+    const name    = (row[2] || '').trim();
+    const role    = (row[3] || '').trim();
+    const term    = (row[4] || '').trim();
+    const icon    = (row[5] || '').trim() || '👤';
+    if (!yearRaw || !name) return; // 年度・名前が無い行はスキップ
+    const year = Number(yearRaw);
+    if (!Number.isFinite(year)) return;
+
+    if (!chart[year]) chart[year] = { leaders: [], departments: [] };
+
+    if (group === '役員') {
+      chart[year].leaders.push({ name, title: role, term, icon });
+    } else {
+      let dept = chart[year].departments.find(d => d.name === group);
+      if (!dept) {
+        dept = { name: group || 'その他', members: [] };
+        chart[year].departments.push(dept);
+      }
+      dept.members.push({ name, role, term, icon });
+    }
+  });
+  return chart;
+}
+
 function renderOrgYearSelector() {
-  const years = Object.keys(ORG_CHART).map(Number).sort((a,b) => b - a);
-  selectedOrgYear = years[0];
   const el = document.getElementById('org-year-selector');
+  if (orgLoadState !== 'ok') {
+    el.innerHTML = '';
+    return;
+  }
+  const years = Object.keys(orgChartData).map(Number).sort((a, b) => b - a);
+  if (years.length === 0) {
+    selectedOrgYear = null;
+    el.innerHTML = '';
+    return;
+  }
+  selectedOrgYear = years[0];
   el.innerHTML = years.map((y, i) =>
     `<button class="year-btn ${i === 0 ? 'active' : ''}" onclick="selectOrgYear(${y}, this)">${y}年度</button>`
   ).join('');
@@ -1214,44 +1060,61 @@ function selectOrgYear(year, el) {
 }
 
 function renderOrgChart() {
-  const data = ORG_CHART[selectedOrgYear];
+  const container = document.getElementById('org-chart');
+
+  if (orgLoadState === 'loading') {
+    container.innerHTML = `<div class="no-data"><span class="no-data-icon">⏳</span>読み込み中...</div>`;
+    return;
+  }
+  if (orgLoadState === 'error') {
+    container.innerHTML = `
+      <div class="no-data">
+        <span class="no-data-icon">⚠️</span>
+        組織図の読み込みに失敗しました<br>
+        <small>電波状況を確認して、後ほどお試しください</small>
+      </div>`;
+    return;
+  }
+
+  const data = orgChartData[selectedOrgYear];
   if (!data) {
-    document.getElementById('org-chart').innerHTML =
-      '<div class="no-data"><span class="no-data-icon">📋</span>この年度のデータはありません</div>';
+    container.innerHTML = '<div class="no-data"><span class="no-data-icon">📋</span>この年度のデータはありません</div>';
     return;
   }
 
   let html = '';
 
   // 役員
-  html += `<div class="org-group"><div class="org-group-title">🏅 役員</div>`;
-  html += data.leaders.map(l => `
-    <div class="org-member-card">
-      <span class="org-icon">${l.icon}</span>
-      <div>
-        <div class="org-name">${l.name}</div>
-        <div class="org-role">${l.title}</div>
-        <div class="org-term">${l.term}</div>
-      </div>
-    </div>`).join('');
-  html += '</div>';
+  if (data.leaders.length > 0) {
+    html += `<div class="org-group"><div class="org-group-title">🏅 役員</div>`;
+    html += data.leaders.map(l => `
+      <div class="org-member-card">
+        <span class="org-icon">${escapeHtml(l.icon)}</span>
+        <div>
+          <div class="org-name">${escapeHtml(l.name)}</div>
+          <div class="org-role">${escapeHtml(l.title)}</div>
+          ${l.term ? `<div class="org-term">${escapeHtml(l.term)}</div>` : ''}
+        </div>
+      </div>`).join('');
+    html += '</div>';
+  }
 
-  // 各部
+  // 各グループ
   (data.departments || []).forEach(dept => {
-    html += `<div class="org-group"><div class="org-group-title">🔹 ${dept.name}</div>`;
+    html += `<div class="org-group"><div class="org-group-title">🔹 ${escapeHtml(dept.name)}</div>`;
     html += dept.members.map(m => `
       <div class="org-member-card">
-        <span class="org-icon">${m.icon}</span>
+        <span class="org-icon">${escapeHtml(m.icon)}</span>
         <div>
-          <div class="org-name">${m.name}</div>
-          <div class="org-role">${m.role}</div>
-          ${m.term ? `<div class="org-term">${m.term}</div>` : ''}
+          <div class="org-name">${escapeHtml(m.name)}</div>
+          <div class="org-role">${escapeHtml(m.role)}</div>
+          ${m.term ? `<div class="org-term">${escapeHtml(m.term)}</div>` : ''}
         </div>
       </div>`).join('');
     html += '</div>';
   });
 
-  document.getElementById('org-chart').innerHTML = html;
+  container.innerHTML = html || '<div class="no-data"><span class="no-data-icon">📋</span>この年度のデータはありません</div>';
 }
 
 // ===========================
@@ -1268,19 +1131,30 @@ function renderDocumentButtons() {
 
 function openDocModal(index) {
   const d = DOCUMENTS[index];
-  document.getElementById('doc-modal-title').textContent = d.title;
+  showDocModal(d.title, { type: d.type, url: d.url });
+}
+
+// 資料モーダルの共通表示処理（DOCUMENTS / Drive資料一覧の両方から使用）
+function showDocModal(title, spec) {
+  document.getElementById('doc-modal-title').textContent = title;
   const body = document.getElementById('doc-modal-body');
-  if (!d.url) {
+  if (!spec || !spec.url) {
     body.innerHTML = `
       <div class="doc-modal-placeholder">
         <span class="doc-modal-placeholder-icon">📂</span>
         まだファイルが設定されていません<br>
-        <small>index.html の DOCUMENTS に<br>ファイルのパスを設定してください</small>
+        <small>Google Drive に対象のファイルが<br>見つかりませんでした</small>
       </div>`;
-  } else if (d.type === 'pdf') {
-    body.innerHTML = `<iframe src="${d.url}"></iframe>`;
+  } else if (spec.type === 'pdf') {
+    body.innerHTML = `<iframe src="${spec.url}"></iframe>`;
+  } else if (spec.type === 'image') {
+    body.innerHTML = `<img src="${spec.url}" alt="${escapeHtml(title)}">`;
   } else {
-    body.innerHTML = `<img src="${d.url}" alt="${d.title}">`;
+    body.innerHTML = `
+      <div class="doc-modal-placeholder">
+        <span class="doc-modal-placeholder-icon">📁</span>
+        このファイル形式はアプリ内で<br>プレビューできません
+      </div>`;
   }
   document.getElementById('doc-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -1314,18 +1188,63 @@ async function initApp() {
     if (targetBtn) switchTab(tabParam, targetBtn);
   }
 
-  // 各セクション描画
+  // お問い合わせタブ（静的データなので即描画）
   renderContacts();
+
+  // Google連携データが届く前の初期表示（「読み込み中...」を表示）
   renderDocumentButtons();
   renderYearFilterChips();
   renderMonthFilterChips();
   renderNoticeList();
+  renderDriveFileList();
+  renderOrgYearSelector();
+  renderOrgChart();
+
+  // ★★★ Googleカレンダー / Drive / スプレッドシートを並行取得 ★★★
+  // 3つは互いに独立しており、1つが失敗しても他の表示には影響しません
+  await Promise.allSettled([
+    fetchCalendarEvents()
+      .then(events => {
+        calendarEvents = events;
+        calendarLoadState = 'ok';
+      })
+      .catch(e => {
+        console.error('カレンダー取得エラー:', e);
+        calendarLoadState = 'error';
+      }),
+    fetchDriveFiles()
+      .then(files => {
+        driveFiles = files;
+        driveLoadState = 'ok';
+        resolveDocumentUrls();
+      })
+      .catch(e => {
+        console.error('Drive取得エラー:', e);
+        driveLoadState = 'error';
+      }),
+    fetchOrgSheet()
+      .then(rows => {
+        orgChartData = buildOrgChartFromRows(rows);
+        orgLoadState = 'ok';
+      })
+      .catch(e => {
+        console.error('組織図（スプレッドシート）取得エラー:', e);
+        orgLoadState = 'error';
+      })
+  ]);
+
+  // 取得結果を反映して再描画
+  renderDocumentButtons();
+  renderYearFilterChips();
+  renderMonthFilterChips();
+  renderNoticeList();
+  renderDriveFileList();
   renderOrgYearSelector();
   renderOrgChart();
 }
 
-// アプリ起動
-initApp();
+// アプリ起動（まず合言葉チェックから）
+checkAuth();
 </script>
 </body>
 </html>
